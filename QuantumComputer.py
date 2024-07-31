@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-# Author: corbett@caltech.edu
+# Author: h00234522@dmc.hct.ae
 
 import numpy as np
 import unittest

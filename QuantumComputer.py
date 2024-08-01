@@ -2197,7 +2197,38 @@ class TestQuantumComputer(unittest.TestCase):
 				self.assertTrue(self.qc.bloch_coords_equal(qubit_name,bloch))
 	def tearDown(self):
 		print(self._testMethodName, "%.3f" % (time.time() - self.startTime))
-		self.qc=None
+		self.qc=		else:
+			if not on_qubit.get_num_qubits()>1:
+				raise Exception("This qubit is marked as entangled but it does not have an entangled state")
+			n_entangled=len(on_qubit.get_entangled())
+			apply_gate_to_qubit_idx=[qb.name for qb in on_qubit.get_entangled()].index(on_qubit_name)
+			if apply_gate_to_qubit_idx==0:
+				entangled_gate=gate
+			else:
+				entangled_gate=Gate.eye
+			for i in range(1,n_entangled):
+				if apply_gate_to_qubit_idx==i:
+					entangled_gate=np.kron(entangled_gate,gate)
+				else:
+					entangled_gate=np.kron(entangled_gate,Gate.eye)
+			on_qubit.set_state(entangled_gate*on_qubit.get_state())
+
+	def apply_two_qubit_gate_CNOT(self,first_qubit_name,second_qubit_name):
+		""" Should work for all combination of qubits"""
+		first_qubit=self.qubits.get_quantum_register_containing(first_qubit_name)
+		second_qubit=self.qubits.get_quantum_register_containing(second_qubit_name)
+		if len(first_qubit.get_noop())>0 or len(second_qubit.get_noop())>0:
+			raise Exception("Control or target qubit has been measured previously, no more gates allowed")
+		if not first_qubit.is_entangled() and not second_qubit.is_entangled():
+			combined_state=np.kron(first_qubit.get_state(),second_qubit.get_state())
+			if first_qubit.get_num_qubits()!=1 or second_qubit.get_num_qubits()!=1:
+				raise Exception("Both qubits are marked as not entangled but one or the other has an entangled state")
+			new_state=Gate.CNOT2_01*combined_state
+			if State.is_fully_separable(new_state):
+				second_qubit.set_state(State.get_second_qubit(new_state))
+			else:
+				self.qubits.entangle_quantum_registers(first_qubit,second_qubit)
+				first_qubit.set_state(new_state)
 
 if __name__ == '__main__':
  	unittest.main()
